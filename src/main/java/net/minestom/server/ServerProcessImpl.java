@@ -138,7 +138,7 @@ final class ServerProcessImpl implements ServerProcess {
 
         this.server = new Server(packetProcessor);
 
-        this.dispatcher = ThreadDispatcher.singleThread();
+        this.dispatcher = ThreadDispatcher.multiThreaded(Runtime.getRuntime().availableProcessors());//TODO: make configurable
         this.ticker = new TickerImpl();
     }
 
