@@ -16,6 +16,9 @@ import java.util.function.Supplier;
 
 final class SchedulerImpl implements Scheduler {
     private static final AtomicInteger TASK_COUNTER = new AtomicInteger();
+
+
+    //TODO: investigate increasing pool size
     private static final ScheduledExecutorService SCHEDULER = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r);
         thread.setDaemon(true);

@@ -25,6 +25,8 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.net.SocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @ApiStatus.Experimental
 @ApiStatus.NonExtendable
@@ -33,6 +35,8 @@ public interface ServerProcess extends Registries, Snapshotable {
      * Handles incoming connections/players.
      */
     @NotNull ConnectionManager connection();
+
+    @NotNull ExecutorService executorService();
 
     /**
      * Handles registered instances.

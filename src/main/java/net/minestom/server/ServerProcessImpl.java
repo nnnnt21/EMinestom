@@ -49,7 +49,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -90,6 +94,7 @@ final class ServerProcessImpl implements ServerProcess {
     private final AdvancementManager advancement;
     private final BossBarManager bossBar;
     private final TagManager tag;
+    private final ExecutorService executorService;
 
     private final Server server;
 
@@ -137,8 +142,8 @@ final class ServerProcessImpl implements ServerProcess {
         this.tag = new TagManager();
 
         this.server = new Server(packetProcessor);
-
-        this.dispatcher = ThreadDispatcher.multiThreaded(Runtime.getRuntime().availableProcessors());//TODO: make configurable
+        this.executorService = Executors.newFixedThreadPool(4);//TODO: make configurable
+        this.dispatcher = ThreadDispatcher.multiThreaded(Runtime.getRuntime().availableProcessors()-4);//TODO: make configurable
         this.ticker = new TickerImpl();
     }
 
@@ -210,6 +215,11 @@ final class ServerProcessImpl implements ServerProcess {
     @Override
     public @NotNull ConnectionManager connection() {
         return connection;
+    }
+
+    @Override
+    public @NotNull ExecutorService executorService() {
+        return null;
     }
 
     @Override
@@ -396,12 +406,28 @@ final class ServerProcessImpl implements ServerProcess {
 
         private void serverTick(long tickStart) {
             // Tick all instances
-            for (Instance instance : instance().getInstances()) {
-                try {
-                    instance.tick(tickStart);
-                } catch (Exception e) {
-                    exception().handleException(e);
-                }
+            // in parallel
+
+            Collection<Instance> instances = instance().getInstances();
+            CountDownLatch latch = new CountDownLatch(instances.size());
+
+
+            for (Instance instance : instances) {//TODO: not much actually seems to be done in instance's tick by default so this may be unneeded for some
+                executorService.submit(() -> {
+                    try {
+                        instance.tick(tickStart);
+                    } catch (Exception e) {
+                        exception().handleException(e);
+                    } finally {
+                        latch.countDown();
+                    }
+                });
+            }
+            try {
+                latch.await(); // Wait for all instances to finish ticking
+            } catch (InterruptedException e) {
+                //Thread.currentThread().interrupt();
+                exception().handleException(e);
             }
             // Tick all chunks (and entities inside)
             dispatcher().updateAndAwait(tickStart);
