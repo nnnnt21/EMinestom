@@ -46,6 +46,10 @@ public final class ThreadDispatcher<P> {
         return of(ThreadProvider.counter(), 1);
     }
 
+    public static <P> @NotNull ThreadDispatcher<P> multiThreaded(int threadCount) {
+        return of(ThreadProvider.counter(), threadCount);
+    }
+
     @Unmodifiable
     public @NotNull List<@NotNull TickThread> threads() {
         return threads;
